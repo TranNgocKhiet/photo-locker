@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+.no-scroll {
+  overflow: hidden !important;
+}
+
+.no-scroll::-webkit-scrollbar {
+  display: none;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.no-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
