@@ -29,7 +29,7 @@ jobs:
 
       - name: Run Next.js Build Check (Kiểm tra build thành công)
         env:
-          CLERK_SECRET_KEY: fake_secret
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: fake_public
-          POSTGRES_PRISMA_URL: postgresql://fake:fake@fake.com:5432/fake
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          POSTGRES_PRISMA_URL: ${{ secrets.POSTGRES_PRISMA_URL }}
         run: npm run build
