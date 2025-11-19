@@ -45,7 +45,6 @@ export default function DetailContent({ photo, backLink, tagName }: DetailConten
         >
           <div className="flex justify-between items-start">
             <Link href={backLink} className="text-gray-500 hover:text-black">← Quay lại</Link>
-            <DeleteButton photoId={photo.id} />
           </div>
 
           <h1 className="text-2xl font-bold text-gray-800">Chi tiết ảnh</h1>
@@ -55,6 +54,8 @@ export default function DetailContent({ photo, backLink, tagName }: DetailConten
 
           <TagManagementPanel photoId={photo.id} tags={photo.tags} />
           
+          <DeleteButton photoId={photo.id} />
+
           <div className="flex-1"></div> 
           
           {tagName && (
