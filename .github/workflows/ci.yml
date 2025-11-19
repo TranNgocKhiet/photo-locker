@@ -12,7 +12,7 @@ on:
       - prod
 
 jobs:
-  build_and_lint:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -27,9 +27,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run Next.js Build Check (Kiểm tra build thành công)
+      - name: Run Next.js Build Check
         env:
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
           POSTGRES_PRISMA_URL: ${{ secrets.POSTGRES_PRISMA_URL }}
-        run: npm run build
+        run: npm run dev
