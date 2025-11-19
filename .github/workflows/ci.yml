@@ -1,0 +1,39 @@
+name: CI Checks & Production Deploy
+
+on:
+  push:
+    branches:
+      - dev
+      - prod
+  pull_request:
+    types: [opened, synchronize]
+    branches:
+      - dev
+      - prod
+
+jobs:
+  build_and_lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run ESLint (Kiểm tra lỗi cú pháp)
+        run: npm run lint
+
+      - name: Run Next.js Build Check (Kiểm tra build thành công)
+        # Sử dụng biến môi trường mock để kiểm tra build mà không cần key thật
+        env:
+          CLERK_SECRET_KEY: fake_secret
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: fake_public
+          POSTGRES_PRISMA_URL: postgresql://fake:fake@fake.com:5432/fake
+        run: npm run build

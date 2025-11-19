@@ -2,11 +2,12 @@ import { db } from "../../lib/db";
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import PhotoFullscreen from "../../components/PhotoFullscreen";
-
+import { isLockerUnlockedServer } from "@/app/actions";
 interface PageProps {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ tags?: string }>;
 }
+
 
 export default async function PhotoDetailPage({ params, searchParams }: PageProps) {
   const { userId } = await auth();
@@ -26,16 +27,34 @@ export default async function PhotoDetailPage({ params, searchParams }: PageProp
     );
   }
 
+  const lockerStatus = await isLockerUnlockedServer()
+  const isLockerUnlocked = lockerStatus === true;
+
   const tagArray = tags ? tags.split(",") : [];
   const backLink = tags ? `/?tags=${tags}` : "/";
-  const allRelevantPhotos = await db.photo.findMany({
-    where: {
-      userId: userId,
-      ...(tagArray.length > 0 ? { tags: { hasSome: tagArray } } : {}),
-    },
-    select: { id: true },
-    orderBy: { createdAt: "desc" },
-  });
+  
+  let allRelevantPhotos = [];
+  if (!isLockerUnlocked) {
+    allRelevantPhotos = await db.photo.findMany({
+      where: {
+        userId: userId,
+        isLocked: false,
+        ...(tagArray.length > 0 ? { tags: { hasSome: tagArray } } : {}),
+      },
+      select: { id: true },
+      orderBy: { createdAt: "desc" },
+    });
+  } else {
+    allRelevantPhotos = await db.photo.findMany({
+      where: {
+        userId: userId,
+        ...(tagArray.length > 0 ? { tags: { hasSome: tagArray } } : {}),
+      },
+      select: { id: true },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+  
 
   const currentIndex = allRelevantPhotos.findIndex((p) => p.id === id);
   const prevPhotoId = currentIndex > 0 ? allRelevantPhotos[currentIndex - 1].id : null;

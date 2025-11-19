@@ -14,4 +14,11 @@ model Photo {
   tags      String[]
   createdAt DateTime @default(now())
   userId    String
+  isLocked  Boolean  @default(false) 
+}
+
+model UserSetting {
+  id       String @id @default(cuid())
+  userId   String @unique
+  pinHash  String
 }
