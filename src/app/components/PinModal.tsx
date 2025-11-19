@@ -156,7 +156,11 @@ export default function PinModal({ onClose, isPinSet, mode, onUnlock }: PinModal
                     
                     <button
                         type="submit"
-                        disabled={isLoading || (currentMode !== 'CHANGE' && isGlobalValidationFailed) || (currentMode === 'CHANGE' && (handlePinValidation(pin) || handlePinValidation(newPin) || newPin !== confirmPin))}
+                        disabled={
+                            isLoading || 
+                            (currentMode !== 'CHANGE' && !!isGlobalValidationFailed) || 
+                            (currentMode === 'CHANGE' && (!!handlePinValidation(pin) || !!handlePinValidation(newPin) || newPin !== confirmPin))
+                        }
                         className={`w-full ${content.color} text-white py-3 rounded-lg font-semibold hover:${content.color.replace('600', '700')} disabled:bg-gray-400`}
                     >
                         {isLoading ? 'Đang xử lý...' : content.buttonText}
