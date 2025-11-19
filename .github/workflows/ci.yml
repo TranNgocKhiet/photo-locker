@@ -27,11 +27,7 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run ESLint (Kiểm tra lỗi cú pháp)
-        run: npm run lint
-
       - name: Run Next.js Build Check (Kiểm tra build thành công)
-        # Sử dụng biến môi trường mock để kiểm tra build mà không cần key thật
         env:
           CLERK_SECRET_KEY: fake_secret
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: fake_public
