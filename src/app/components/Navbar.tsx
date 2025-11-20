@@ -73,7 +73,7 @@ export default function Navbar() {
                 alt="Photo Locker Logo"
                 width={55}
                 height={55}
-                className="rounded-full"
+                className=""
             />
             <span className="text-xl font-bold text-blue-600 hover:text-blue-800">Photo Locker</span>
         </Link>
