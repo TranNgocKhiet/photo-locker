@@ -42,12 +42,12 @@ export default function PhotoFullscreen({ photo, nextLink, prevLink, backLink, t
         style={{ top: navbarHeight }} 
     >
       <div className="relative w-full h-full flex justify-center items-center p-4"> 
-        <div className="relative w-full h-full"> 
+        <div className="relative w-full md:w-[90%] max-w-[1480px] h-full mx-auto"> 
             <Image 
               src={photo.imageUrl} 
               alt="Full View" 
               fill 
-              className="object-contain" 
+              className="object-contain mx-auto"
               priority
             />
         </div>

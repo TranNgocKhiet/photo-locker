@@ -64,8 +64,8 @@ export default function UploadPage() {
       <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-3xl">
         
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Upload photo</h1>
-          <Link href="/" className="text-gray-500 hover:text-black">✕ Cancel</Link>
+          <h1 className="text-2xl font-bold text-gray-800">Tải ảnh lên</h1>
+          <Link href="/" className="text-gray-500 hover:text-black">✕ Hủy</Link>
         </div>
 
         <div className="flex flex-col gap-4 mb-8">
@@ -77,19 +77,19 @@ export default function UploadPage() {
               accept="image/*"
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             />
-            <p className="text-gray-500">Drag and drop photo(s) here or click to select</p>
-            <p className="text-xs text-gray-400 mt-1">(Multiple photos can be selected at the same time)</p>
+            <p className="text-gray-500">Kéo và thả ảnh vào đây hoặc nhấp để chọn</p>
+            <p className="text-xs text-gray-400 mt-1">(Có thể chọn nhiều ảnh cùng lúc)</p>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tag for photo(s):
+              Gắn thẻ (tag) cho ảnh:
             </label>
             <input
               type="text"
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
-              placeholder="E.g. pet, summer, playground (seperate with comma)"
+              placeholder="E.g. thú cưng, phong cảnh, chân dung, ... (ngăn cách bằng dấu phẩy)"
               className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
@@ -124,7 +124,7 @@ export default function UploadPage() {
           disabled={loading || files.length === 0}
           className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
         >
-          {loading ? `Uploading ${files.length} photo(s)...` : "Start Uploading"}
+          {loading ? `Đang tải ${files.length} ảnh...` : "Bắt đầu tải"}
         </button>
 
       </div>

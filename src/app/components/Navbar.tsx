@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import PinModal from "./PinModal"; 
 import { useLockerState } from "../../hooks/useLockerState";
 import { useRouter } from "next/navigation"; 
+import Image from "next/image";
 
 type ModalMode = 'CLOSE' | 'UNLOCK' | 'SET' | 'CHANGE';
 
@@ -66,8 +67,15 @@ export default function Navbar() {
     <nav className="bg-white shadow-md p-4 sticky top-0 z-[150]">
       <div className="container mx-auto flex justify-between items-center">
         
-        <Link href="/" className="text-xl font-bold text-blue-600 hover:text-blue-800">
-          📸 PhotoApp
+        <Link href="/" className="flex items-center gap-2">
+            <Image
+                src="/logo.png"
+                alt="Photo Locker Logo"
+                width={55}
+                height={55}
+                className="rounded-full"
+            />
+            <span className="text-xl font-bold text-blue-600 hover:text-blue-800">Photo Locker</span>
         </Link>
 
         <div className="flex items-center gap-6">
