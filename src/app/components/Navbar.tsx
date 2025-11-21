@@ -36,20 +36,18 @@ export default function Navbar() {
       setTimeout(() => { router.refresh(); }, 0); 
     } else {
       if (isPinSet !== null) {
-        setModalMode('UNLOCK');
+        setModalMode(isPinSet ? 'UNLOCK' : 'SET');
       }
     }
   };
 
   const handleModalClose = () => {
     setModalMode('CLOSE');
-    if (!isPinSet) {
-        setIsPinSet(true); 
-    }
   };
   
   const handleUnlockAndRefresh = () => {
     unlockLocker();
+    setIsPinSet(true);
     setTimeout(() => {
         router.refresh(); 
     }, 0);
@@ -59,7 +57,7 @@ export default function Navbar() {
     ? 'Đang tải...' 
     : isUnlocked 
       ? '🔓 Khóa Locker' 
-      : '🔒 Locker';
+      : '🔒 Mở Khóa Locker';
       
   const isLockerDisabled = isPinSet === null;
 
@@ -80,15 +78,13 @@ export default function Navbar() {
 
         <div className="flex items-center gap-6">
           
-          <SignedIn>
-            {isPinSet && (
-                <button
-                    onClick={() => setModalMode('CHANGE')}
-                    className="text-gray-600 hover:text-black font-medium text-sm"
-                >
-                    Đổi PIN
-                </button>
-            )}
+            <SignedIn>
+            <button
+              onClick={() => setModalMode(isPinSet ? 'CHANGE' : 'SET')}
+              className="text-gray-600 hover:text-black font-medium text-sm mr-3"
+            >
+              {isPinSet ? 'Đổi PIN' : 'Đặt PIN'}
+            </button>
 
             <button
                 onClick={handleLockerClick}
@@ -102,7 +98,10 @@ export default function Navbar() {
                 {lockerButtonText}
             </button>
             
-            <Link href="/upload" className="text-gray-600 hover:text-black font-medium">
+            <Link 
+              href="/upload" 
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center gap-2 shadow-md transition-transform hover:scale-105"
+            >
               Tải ảnh lên
             </Link>
           </SignedIn>

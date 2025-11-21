@@ -53,16 +53,18 @@ export default function PhotoFullscreen({ photo, nextLink, prevLink, backLink, t
         </div>
       </div>
 
-      <Link 
-        href={backLink} 
-        className="absolute top-6 left-6 z-[110] bg-black/50 hover:bg-black/80 text-white w-10 h-10 rounded-full flex items-center justify-center transition-colors backdrop-blur-sm"
+      <Link
+        href={backLink}
+        className="absolute left-6 z-[110] bg-white text-black w-10 h-10 rounded-full flex items-center justify-center transition-colors hover:bg-gray-200"
+        style={{ top: `calc(${navbarHeight} + 8px)` }}
       >
         ✕
       </Link>
 
-      <button 
+      <button
         onClick={() => setShowInfo(!showInfo)}
-        className={`absolute top-6 right-6 z-[110] w-10 h-10 rounded-full flex items-center justify-center transition-all backdrop-blur-sm border text-lg ${showInfo ? "bg-white text-black border-white" : "bg-black/50 text-white border-transparent hover:bg-black/80"}`}
+        className={`absolute right-6 z-[110] w-10 h-10 rounded-full flex items-center justify-center transition-all backdrop-blur-sm border text-lg ${showInfo ? "bg-white text-black border-white" : "bg-white text-black border-transparent hover:bg-gray-200"}`}
+        style={{ top: `calc(${navbarHeight} + 8px)` }}
       >
         {showInfo ? '✖' : 'ℹ'}
       </button>
