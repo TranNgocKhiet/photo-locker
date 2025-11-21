@@ -37,14 +37,7 @@ export default async function HomePage({
           <h1 className="text-3xl font-bold text-gray-800">
             Xin chào, {user?.firstName || "Bạn"}! 👋
           </h1>
-          <p className="text-gray-500">Bộ sưu tập ảnh của bạn.</p>
         </div>
-        <Link 
-          href="/upload" 
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center gap-2 shadow-md transition-transform hover:scale-105"
-        >
-          <span>+</span> Tải thêm
-        </Link>
       </div>
 
       <Suspense fallback={<div>Đang tải bộ sưu tập...</div>}>

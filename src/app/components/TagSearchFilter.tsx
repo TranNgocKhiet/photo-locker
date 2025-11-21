@@ -51,7 +51,7 @@ export default function TagSearchFilter({ allTags }: { allTags: string[] }) {
   return (
     <div className="w-full max-w-2xl mb-8" ref={wrapperRef}>
       <label className="block text-sm font-medium text-gray-700 mb-2">
-        Lọc theo Tag:
+        Lọc theo thẻ:
       </label>
 
       <div className="bg-white border border-gray-300 rounded-lg p-2 flex flex-wrap items-center gap-2 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 relative">
@@ -76,7 +76,7 @@ export default function TagSearchFilter({ allTags }: { allTags: string[] }) {
             setShowDropdown(true);
           }}
           onFocus={() => setShowDropdown(true)}
-          placeholder={selectedTags.length === 0 ? "Gõ tên tag để tìm kiếm..." : "Thêm tag khác..."}
+          placeholder={selectedTags.length === 0 ? "Gõ tên thẻ để tìm kiếm..." : "Thêm tag khác..."}
           className="flex-1 min-w-[120px] outline-none text-sm py-1 text-gray-700"
         />
 
@@ -100,12 +100,11 @@ export default function TagSearchFilter({ allTags }: { allTags: string[] }) {
                   className="px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 flex justify-between"
                 >
                   <span>#{tag}</span>
-                  <span className="text-xs text-gray-400">Thêm +</span>
                 </li>
               ))
             ) : (
               <li className="px-4 py-2 text-sm text-gray-400 italic">
-                Không tìm thấy tag "{inputValue}"
+                Không tìm thấy thẻ "{inputValue}"
               </li>
             )}
           </ul>

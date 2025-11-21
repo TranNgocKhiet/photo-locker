@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import TagLink from "./TagLink"; 
 import TagSearchFilter from "./TagSearchFilter";
+import PinModal from "./PinModal";
 import { useSearchParams } from "next/navigation"; 
 import { toggleLockPhoto } from "../actions"; 
 import { useLockerState } from "@/hooks/useLockerState";
@@ -18,17 +19,23 @@ export default function PhotoGallery({ initialTags }: { initialTags: string[] })
     const [isLoading, setIsLoading] = useState(false);
     const [isSelectionMode, setIsSelectionMode] = useState(false); 
     const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
+    const [isPinSet, setIsPinSet] = useState<boolean | null>(null);
+    const [showPinModal, setShowPinModal] = useState(false);
+    const [pinModalMode, setPinModalMode] = useState<'SET' | 'UNLOCK' | 'CHANGE'>('SET');
+    const [pendingAction, setPendingAction] = useState<'lock' | 'unlock' | 'delete' | null>(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const searchParams = useSearchParams(); 
+    const tagsQuery = searchParams.get('tags') || '';
+    const queryString = searchParams.toString();
+    const selectedTags = (searchParams.get('tags') || '').split(',').filter(Boolean);
+    const [requireAllTags, setRequireAllTags] = useState(false);
     
     const { isUnlocked } = useLockerState(); 
     
-    console.log("PhotoGallery (Render Lần 2): isUnlocked = ", isUnlocked);
-
     const limit = 8; 
 
     const fetchPhotos = useCallback(async (nextPage: number, reset: boolean = false) => {
         setIsLoading(true);
-        const tagsQuery = searchParams.get('tags') || '';
         
         try {
             const response = await fetch(`/api/photos?page=${nextPage}&limit=${limit}&tags=${tagsQuery}`);
@@ -46,13 +53,23 @@ export default function PhotoGallery({ initialTags }: { initialTags: string[] })
         } finally {
             setIsLoading(false);
         }
-    }, [searchParams]);
+    }, [tagsQuery]);
 
     useEffect(() => {
+        async function checkPinStatus() {
+            try {
+                const response = await fetch('/api/pin-status');
+                const data = await response.json();
+                setIsPinSet(data.isSet);
+            } catch {
+                setIsPinSet(false);
+            }
+        }
+        checkPinStatus();
         setPhotos([]);
         fetchPhotos(1, true);
         setPage(0);
-    }, [searchParams.toString(), fetchPhotos, isUnlocked, ]); 
+    }, [queryString, fetchPhotos, isUnlocked]); 
 
     const handleLoadMore = () => {
         if (photos.length < total) {
@@ -68,7 +85,7 @@ export default function PhotoGallery({ initialTags }: { initialTags: string[] })
                     await toggleLockPhoto(id, lockState);
                 })
             );
-            fetchPhotos(page, true); 
+            fetchPhotos(page, true);
 
         } catch (error) {
             console.error("Lỗi khi khóa/mở khóa:", error);
@@ -77,6 +94,70 @@ export default function PhotoGallery({ initialTags }: { initialTags: string[] })
             setIsSelectionMode(false);
             setIsLoading(false);
         }
+    };
+
+    const requestBatchLock = async (lockState: boolean) => {
+        if (isUnlocked) {
+            return handleBatchLock(lockState);
+        }
+        let hasPin = isPinSet;
+        try {
+            if (isPinSet === null) {
+                const res = await fetch('/api/pin-status');
+                const data = await res.json();
+                hasPin = !!data.pinHash;
+                setIsPinSet(hasPin);
+            }
+        } catch (err) {
+            console.error('Error fetching pin status', err);
+            hasPin = false;
+            setIsPinSet(false);
+        }
+
+        if (!hasPin) {
+            setPendingAction('lock');
+            setPinModalMode('SET');
+            setShowPinModal(true);
+            return;
+        }
+
+        setPendingAction('lock');
+        setPinModalMode('UNLOCK');
+        setShowPinModal(true);
+        return;
+    };
+    
+    const requestBatchUnlock = async () => {
+        if (selectedPhotos.length === 0) return;
+
+        if (isUnlocked) {
+            return handleBatchLock(false);
+        }
+
+        let hasPin = isPinSet;
+        try {
+            if (isPinSet === null) {
+                const res = await fetch('/api/pin-status');
+                const data = await res.json();
+                hasPin = !!data.isSet;
+                setIsPinSet(hasPin);
+            }
+        } catch (err) {
+            console.error('Error fetching pin status', err);
+            hasPin = false;
+            setIsPinSet(false);
+        }
+
+        if (!hasPin) {
+            setPendingAction('unlock');
+            setPinModalMode('SET');
+            setShowPinModal(true);
+            return;
+        }
+
+        setPendingAction('unlock');
+        setPinModalMode('UNLOCK');
+        setShowPinModal(true);
     };
     
     const toggleSelectPhoto = (photoId: string) => {
@@ -87,25 +168,41 @@ export default function PhotoGallery({ initialTags }: { initialTags: string[] })
         );
     };
 
+    const selectedHasLocked = selectedPhotos.some(id => photos.find(p => p.id === id)?.isLocked);
+    const selectedHasUnlocked = selectedPhotos.some(id => {
+        const p = photos.find(p => p.id === id);
+        return !!p && !p.isLocked;
+    });
 
-    const queryString = searchParams.toString();
+
+    
     
     const Toolbar = (
         <div className="flex justify-between items-center mb-4 p-3 border rounded-lg bg-white shadow-sm">
             <div>
-                <button
-                    onClick={() => setIsSelectionMode(prev => !prev)}
-                    className="bg-yellow-500 text-white px-4 py-2 rounded-full text-sm hover:bg-yellow-600 shadow-md transition-colors"
-                >
-                    {isSelectionMode ? "✕ Hủy Chọn" : "🔒 Chọn nhiều ảnh"}
-                </button>
-                    {isSelectionMode && (
+                <div className="flex items-center gap-3">
+                  <button
+                      onClick={() => setIsSelectionMode(prev => !prev)}
+                      className="bg-gray-400 text-white px-4 py-2 rounded-full text-sm hover:bg-gray-500 shadow-md transition-colors"
+                  >
+                      {isSelectionMode ? "✕ Hủy Chọn" : "Chọn nhiều ảnh"}
+                  </button>
+
+                  <button
+                      onClick={() => setRequireAllTags(prev => !prev)}
+                      className={`px-3 bg-gray-200 py-2 rounded-full text-sm ${requireAllTags ? 'bg-gray-900 text-white' : 'hover:bg-gray-300'}`}
+                      title="Chỉ hiện ảnh chứa đủ thẻ (tag) đã chọn"
+                  >
+                      Chỉ hiện ảnh chứa đủ thẻ
+                  </button>
+
+                  {isSelectionMode && (
                         <>
                             <button
-                                onClick={() => handleBatchLock(true)}
-                                disabled={isLoading || selectedPhotos.length === 0}
+                                onClick={() => requestBatchLock(true)}
+                                disabled={isLoading || selectedPhotos.length === 0 || !selectedHasUnlocked}
                                 className={
-                                    (isLoading || selectedPhotos.length === 0)
+                                    (isLoading || selectedPhotos.length === 0 || !selectedHasUnlocked)
                                         ? 'ml-3 px-4 py-2 rounded-full text-sm bg-gray-100 text-gray-400'
                                         : 'ml-3 px-4 py-2 rounded-full text-sm bg-black text-white hover:bg-gray-900'
                                 }
@@ -114,10 +211,10 @@ export default function PhotoGallery({ initialTags }: { initialTags: string[] })
                             </button>
 
                             <button
-                                onClick={() => handleBatchLock(false)}
-                                disabled={isLoading || selectedPhotos.length === 0 || !photos.some(p => selectedPhotos.includes(p.id) && p.isLocked)}
+                                onClick={() => requestBatchUnlock()}
+                                disabled={isLoading || selectedPhotos.length === 0 || !selectedHasLocked}
                                 className={
-                                    (isLoading || selectedPhotos.length === 0)
+                                    (isLoading || selectedPhotos.length === 0 || !selectedHasLocked)
                                         ? 'ml-3 px-4 py-2 rounded-full text-sm bg-gray-100 text-gray-400'
                                         : 'ml-3 bg-green-600 text-white px-4 py-2 rounded-full text-sm hover:bg-green-700'
                                 }
@@ -127,26 +224,34 @@ export default function PhotoGallery({ initialTags }: { initialTags: string[] })
 
                             <button
                                 onClick={async () => {
+                                    // Request delete, but if any selected photo is locked and locker is locked,
+                                    // require PIN first.
                                     if (selectedPhotos.length === 0) return;
-                                    if (!confirm(`Bạn có chắc chắn muốn xóa ${selectedPhotos.length} ảnh đã chọn không?`)) return;
-                                    setIsLoading(true);
-                                    try {
-                                        const res = await fetch('/api/photos/batch-delete', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ ids: selectedPhotos }),
-                                        });
-                                        const json = await res.json();
-                                        if (!res.ok || !json.success) throw new Error(json?.error || 'Delete failed');
-                                        await fetchPhotos(page, true);
-                                    } catch (err) {
-                                        console.error('Batch delete error', err);
-                                        alert('Xóa ảnh thất bại. Kiểm tra console để biết chi tiết.');
-                                    } finally {
-                                        setSelectedPhotos([]);
-                                        setIsSelectionMode(false);
-                                        setIsLoading(false);
+
+                                    // If any selected photos are locked and the global locker is locked,
+                                    // route through the PIN flow.
+                                    if (selectedHasLocked && !isUnlocked) {
+                                        // If no PIN is set, open SET modal; otherwise open UNLOCK modal.
+                                        try {
+                                            let hasPin = isPinSet;
+                                            if (isPinSet === null) {
+                                                const res = await fetch('/api/pin-status');
+                                                const data = await res.json();
+                                                hasPin = !!data.isSet;
+                                                setIsPinSet(hasPin);
+                                            }
+
+                                            setPendingAction('delete');
+                                            setPinModalMode(hasPin ? 'UNLOCK' : 'SET');
+                                            setShowPinModal(true);
+                                            return;
+                                        } catch (err) {
+                                            console.error('Error checking pin status before delete', err);
+                                            // fallthrough to attempt delete (will likely fail server-side for locked items)
+                                        }
                                     }
+                                    // Otherwise open in-app confirmation modal (locker unlocked or no locked items selected)
+                                    setShowDeleteConfirm(true);
                                 }}
                                 disabled={isLoading || selectedPhotos.length === 0}
                                 className={
@@ -159,6 +264,7 @@ export default function PhotoGallery({ initialTags }: { initialTags: string[] })
                             </button>
                         </>
                     )}
+                </div>
             </div>
             
             
@@ -168,6 +274,69 @@ export default function PhotoGallery({ initialTags }: { initialTags: string[] })
 
     return (
         <>
+            {showDeleteConfirm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div className="bg-white rounded-lg shadow-lg max-w-lg w-full p-6">
+                        <h3 className="text-lg font-semibold mb-2">Xác nhận xóa ảnh</h3>
+                        <p className="text-sm text-gray-600 mb-4">Bạn có chắc chắn muốn xóa {selectedPhotos.length} ảnh đã chọn? Hành động này không thể hoàn tác.</p>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setShowDeleteConfirm(false)}
+                                className="px-4 py-2 rounded-full bg-gray-100 text-gray-700"
+                            >Hủy</button>
+                            <button
+                                onClick={async () => {
+                                    setShowDeleteConfirm(false);
+                                    setIsLoading(true);
+                                    try {
+                                        const res = await fetch('/api/photos/batch-delete', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ ids: selectedPhotos }),
+                                        });
+                                        const json = await res.json();
+                                        if (!res.ok || !json.success) throw new Error(json?.error || 'Delete failed');
+                                        await fetchPhotos(page || 1, true);
+                                    } catch (err) {
+                                        console.error('Batch delete error', err);
+                                        alert('Xóa ảnh thất bại. Kiểm tra console để biết chi tiết.');
+                                    } finally {
+                                        setSelectedPhotos([]);
+                                        setIsSelectionMode(false);
+                                        setIsLoading(false);
+                                    }
+                                }}
+                                className="px-4 py-2 rounded-full bg-red-600 text-white hover:bg-red-700"
+                            >Xóa</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {showPinModal && (
+                <PinModal
+                    onClose={() => { setShowPinModal(false); setPendingAction(null); }}
+                    isPinSet={!!isPinSet}
+                    mode={pinModalMode}
+                    onUnlock={async () => {
+                        setIsPinSet(true);
+                        setShowPinModal(false);
+                        const action = pendingAction;
+                        setPendingAction(null);
+
+                        if (action === 'delete') {
+                            // show delete confirm after successful PIN
+                            setShowDeleteConfirm(true);
+                            return;
+                        }
+
+                        if (action === 'unlock') {
+                            await handleBatchLock(false);
+                        } else if (action === 'lock') {
+                            await handleBatchLock(true);
+                        }
+                    }}
+                />
+            )}
             <TagSearchFilter allTags={initialTags} /> 
 
             <div className="mb-6">{Toolbar}</div>
@@ -179,7 +348,11 @@ export default function PhotoGallery({ initialTags }: { initialTags: string[] })
             )}
             
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 animate-in fade-in duration-500">
-                {photos.map((photo) => {
+                {(
+                    requireAllTags && selectedTags.length > 0
+                    ? photos.filter(photo => selectedTags.every(t => photo.tags.includes(t)))
+                    : photos
+                ).map((photo) => {
                     const isSelected = selectedPhotos.includes(photo.id);
                     const isLocked = photo.isLocked;
                     const shouldHideContent = isLocked && !isUnlocked; 
@@ -204,9 +377,8 @@ export default function PhotoGallery({ initialTags }: { initialTags: string[] })
                                         />
                                         <div className="absolute inset-0 flex flex-col items-center justify-center text-white bg-black/30">
                                             <span className="text-4xl">🔒</span>
-                                            <span className="text-sm mt-1 font-medium">Nội dung đã khóa</span>
                                         </div>
-                                        {isSelected && <span className="absolute top-2 left-2 bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm z-30">✓</span>}
+                                            {isSelected && <span className="absolute top-2 left-2 bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm z-30">✓</span>}
                                     </div>
                                 );
                             }
@@ -224,7 +396,6 @@ export default function PhotoGallery({ initialTags }: { initialTags: string[] })
                                     />
                                     <div className="absolute inset-0 flex flex-col items-center justify-center text-white bg-black/30">
                                         <span className="text-4xl">🔒</span>
-                                        <span className="text-sm mt-1 font-medium">Nội dung đã khóa</span>
                                     </div>
                                 </div>
                             );
@@ -238,6 +409,11 @@ export default function PhotoGallery({ initialTags }: { initialTags: string[] })
                                 >
                                     {children}
                                     {isSelected && <span className="absolute top-2 left-2 bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm z-30">✓</span>}
+                                    {photo.isLocked && (
+                                        <span className="absolute top-2 right-2 bg-black/70 text-white rounded-full w-7 h-7 flex items-center justify-center text-xs z-30" aria-hidden>
+                                            🔒
+                                        </span>
+                                    )}
                                 </div>
                             );
                         }
@@ -248,6 +424,9 @@ export default function PhotoGallery({ initialTags }: { initialTags: string[] })
                                 className="relative group block aspect-square overflow-hidden rounded-xl bg-gray-100 shadow-sm border border-gray-200 hover:shadow-lg transition-all hover:-translate-y-1"
                             >
                                 {children}
+                                {photo.isLocked && (
+                                    <span className="absolute top-2 right-2 bg-black/70 text-white rounded-full w-7 h-7 flex items-center justify-center text-xs z-30">🔒</span>
+                                )}
                             </Link>
                         );
                     };
