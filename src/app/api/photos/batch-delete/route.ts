@@ -25,18 +25,15 @@ export async function POST(req: Request) {
 
     if (ids.length === 0) return NextResponse.json({ success: false, error: 'No ids provided' }, { status: 400 });
 
-    // Validate ownership and collect publicIds
     const photos = await db.photo.findMany({ where: { id: { in: ids } }, select: { id: true, userId: true, imageUrl: true } });
 
     const unauthorized = photos.some(p => p.userId !== userId);
     if (unauthorized) return NextResponse.json({ success: false, error: 'Not allowed to delete some photos' }, { status: 403 });
 
-    // Delete from Cloudinary where applicable
     const publicIds = photos.map(p => getPublicIdFromUrl(p.imageUrl)).filter(Boolean) as string[];
 
     await Promise.all(publicIds.map(id => cloudinary.uploader.destroy(id)));
 
-    // Delete from database
     await db.photo.deleteMany({ where: { id: { in: ids } } });
 
     return NextResponse.json({ success: true });

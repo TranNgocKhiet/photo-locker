@@ -14,12 +14,11 @@ interface PinModalProps {
     onUnlock: () => void;
 }
 
-// Định nghĩa kiểu dữ liệu cho trường input (giúp TypeScript hiểu)
 interface FieldProps {
     pin: string; 
     placeholder: string;
-    value?: string; // Tùy chọn
-    setValue?: Dispatch<SetStateAction<string>>; // Tùy chọn
+    value?: string;
+    setValue?: Dispatch<SetStateAction<string>>;
 }
 
 
@@ -67,7 +66,7 @@ export default function PinModal({ onClose, isPinSet, mode, onUnlock }: PinModal
                     throw new Error(result.error || "Lỗi đổi PIN không xác định.");
                 }
 
-            } else { // UNLOCK
+            } else {
                 if (handlePinValidation(pin)) throw new Error(handlePinValidation(pin)!);
                 formData.append('pin', pin);
                 const result = await verifyPin(formData);
@@ -80,6 +79,24 @@ export default function PinModal({ onClose, isPinSet, mode, onUnlock }: PinModal
             }
         } catch (e: any) {
             setErrorMessage(e.message || 'Lỗi hệ thống.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleForgotPin = async () => {
+        setErrorMessage('');
+        setIsLoading(true);
+        try {
+            const res = await fetch('/api/pin/forgot', { method: 'POST' });
+            const json = await res.json();
+            if (res.ok && json.success) {
+                setErrorMessage('Đã gửi mã PIN mới vào email của bạn. Vui lòng kiểm tra hộp thư.');
+            } else {
+                throw new Error(json?.error || 'Không thể gửi email PIN.');
+            }
+        } catch (e: any) {
+            setErrorMessage(e.message || 'Lỗi khi gửi email.');
         } finally {
             setIsLoading(false);
         }
@@ -118,7 +135,6 @@ export default function PinModal({ onClose, isPinSet, mode, onUnlock }: PinModal
 
     const content = renderContent();
 
-    // Kiểm tra PIN toàn cục cho nút submit (chỉ cần kiểm tra trường chính là pin)
     const isGlobalValidationFailed = handlePinValidation(pin) !== null && currentMode !== 'CHANGE';
 
 
@@ -142,7 +158,6 @@ export default function PinModal({ onClose, isPinSet, mode, onUnlock }: PinModal
                         <input
                             key={field.pin}
                             type="password"
-                            // ✨ FIX VÀNG: Sử dụng Optional Chaining (?. )
                             value={field.value}
                             onChange={(e) => field.setValue?.(e.target.value.slice(0, 4))} 
                             maxLength={4}
@@ -165,6 +180,11 @@ export default function PinModal({ onClose, isPinSet, mode, onUnlock }: PinModal
                     >
                         {isLoading ? 'Đang xử lý...' : content.buttonText}
                     </button>
+                    {currentMode === 'UNLOCK' && (
+                        <button type="button" onClick={handleForgotPin} className="mt-2 text-sm text-blue-600 hover:underline">
+                            Quên PIN? Gửi mã mới vào email
+                        </button>
+                    )}
                 </form>
 
             </div>
