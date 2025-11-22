@@ -23,7 +23,6 @@ export default function PhotoGallery({ initialTags }: { initialTags: string[] })
     const [showPinModal, setShowPinModal] = useState(false);
     const [pinModalMode, setPinModalMode] = useState<'SET' | 'UNLOCK' | 'CHANGE'>('SET');
     const [pendingAction, setPendingAction] = useState<'lock' | 'unlock' | 'delete' | null>(null);
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const searchParams = useSearchParams(); 
     const tagsQuery = searchParams.get('tags') || '';
     const queryString = searchParams.toString();
@@ -224,14 +223,9 @@ export default function PhotoGallery({ initialTags }: { initialTags: string[] })
 
                             <button
                                 onClick={async () => {
-                                    // Request delete, but if any selected photo is locked and locker is locked,
-                                    // require PIN first.
                                     if (selectedPhotos.length === 0) return;
 
-                                    // If any selected photos are locked and the global locker is locked,
-                                    // route through the PIN flow.
                                     if (selectedHasLocked && !isUnlocked) {
-                                        // If no PIN is set, open SET modal; otherwise open UNLOCK modal.
                                         try {
                                             let hasPin = isPinSet;
                                             if (isPinSet === null) {
@@ -247,11 +241,28 @@ export default function PhotoGallery({ initialTags }: { initialTags: string[] })
                                             return;
                                         } catch (err) {
                                             console.error('Error checking pin status before delete', err);
-                                            // fallthrough to attempt delete (will likely fail server-side for locked items)
                                         }
                                     }
-                                    // Otherwise open in-app confirmation modal (locker unlocked or no locked items selected)
-                                    setShowDeleteConfirm(true);
+
+                                    if (!confirm(`Bạn có chắc chắn muốn xóa ${selectedPhotos.length} ảnh đã chọn không?`)) return;
+                                    setIsLoading(true);
+                                    try {
+                                        const res = await fetch('/api/photos/batch-delete', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ ids: selectedPhotos }),
+                                        });
+                                        const json = await res.json();
+                                        if (!res.ok || !json.success) throw new Error(json?.error || 'Delete failed');
+                                        await fetchPhotos(page || 1, true);
+                                    } catch (err) {
+                                        console.error('Batch delete error', err);
+                                        alert('Xóa ảnh thất bại. Kiểm tra console để biết chi tiết.');
+                                    } finally {
+                                        setSelectedPhotos([]);
+                                        setIsSelectionMode(false);
+                                        setIsLoading(false);
+                                    }
                                 }}
                                 disabled={isLoading || selectedPhotos.length === 0}
                                 className={
@@ -274,44 +285,6 @@ export default function PhotoGallery({ initialTags }: { initialTags: string[] })
 
     return (
         <>
-            {showDeleteConfirm && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                    <div className="bg-white rounded-lg shadow-lg max-w-lg w-full p-6">
-                        <h3 className="text-lg font-semibold mb-2">Xác nhận xóa ảnh</h3>
-                        <p className="text-sm text-gray-600 mb-4">Bạn có chắc chắn muốn xóa {selectedPhotos.length} ảnh đã chọn? Hành động này không thể hoàn tác.</p>
-                        <div className="flex justify-end gap-3">
-                            <button
-                                onClick={() => setShowDeleteConfirm(false)}
-                                className="px-4 py-2 rounded-full bg-gray-100 text-gray-700"
-                            >Hủy</button>
-                            <button
-                                onClick={async () => {
-                                    setShowDeleteConfirm(false);
-                                    setIsLoading(true);
-                                    try {
-                                        const res = await fetch('/api/photos/batch-delete', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ ids: selectedPhotos }),
-                                        });
-                                        const json = await res.json();
-                                        if (!res.ok || !json.success) throw new Error(json?.error || 'Delete failed');
-                                        await fetchPhotos(page || 1, true);
-                                    } catch (err) {
-                                        console.error('Batch delete error', err);
-                                        alert('Xóa ảnh thất bại. Kiểm tra console để biết chi tiết.');
-                                    } finally {
-                                        setSelectedPhotos([]);
-                                        setIsSelectionMode(false);
-                                        setIsLoading(false);
-                                    }
-                                }}
-                                className="px-4 py-2 rounded-full bg-red-600 text-white hover:bg-red-700"
-                            >Xóa</button>
-                        </div>
-                    </div>
-                </div>
-            )}
             {showPinModal && (
                 <PinModal
                     onClose={() => { setShowPinModal(false); setPendingAction(null); }}
@@ -324,8 +297,25 @@ export default function PhotoGallery({ initialTags }: { initialTags: string[] })
                         setPendingAction(null);
 
                         if (action === 'delete') {
-                            // show delete confirm after successful PIN
-                            setShowDeleteConfirm(true);
+                            if (!confirm(`Bạn có chắc chắn muốn xóa ${selectedPhotos.length} ảnh đã chọn không?`)) return;
+                            setIsLoading(true);
+                            try {
+                                const res = await fetch('/api/photos/batch-delete', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ ids: selectedPhotos }),
+                                });
+                                const json = await res.json();
+                                if (!res.ok || !json.success) throw new Error(json?.error || 'Delete failed');
+                                await fetchPhotos(page || 1, true);
+                            } catch (err) {
+                                console.error('Batch delete error', err);
+                                alert('Xóa ảnh thất bại. Kiểm tra console để biết chi tiết.');
+                            } finally {
+                                setSelectedPhotos([]);
+                                setIsSelectionMode(false);
+                                setIsLoading(false);
+                            }
                             return;
                         }
 
